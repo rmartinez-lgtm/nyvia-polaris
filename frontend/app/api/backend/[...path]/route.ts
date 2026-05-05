@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = (process.env.BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
+const BACKEND_URL = (process.env.BACKEND_URL || 'http://localhost:8000').trim().replace(/\/$/, '');
 
 async function proxy(req: NextRequest, params: { path: string[] }) {
   const path = params.path.join('/');
