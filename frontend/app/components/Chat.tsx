@@ -53,7 +53,7 @@ export default function Chat() {
         ...prev,
         {
           role: "assistant",
-          content: "Error al conectar con el backend. ¿Está corriendo FastAPI en el puerto 8000?",
+          content: "Hubo un error al procesar tu pregunta. Por favor intenta de nuevo.",
         },
       ]);
     } finally {
