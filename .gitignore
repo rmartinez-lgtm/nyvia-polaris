@@ -1,0 +1,27 @@
+# Credenciales — nunca a git
+backend/.env
+frontend/.env.local
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Qdrant local data
+backend/qdrant_data/
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# Claude Code y editores
+.claude/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
