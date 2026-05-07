@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from langfuse.decorators import observe, langfuse_context
 from services.embeddings import embed_query
 from services.vector_store import search
 from services.llm import ask
@@ -22,9 +23,15 @@ class EvalResponse(BaseModel):
 
 
 @router.post("/", response_model=EvalResponse)
+@observe(name="rag-eval")
 def evaluate(req: EvalRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
+
+    langfuse_context.update_current_trace(
+        name="rag-eval",
+        input=req.question,
+    )
 
     query_vector = embed_query(req.question)
     chunks = search(query_vector, top_k=req.top_k)
@@ -43,6 +50,22 @@ def evaluate(req: EvalRequest):
 
     groundedness = judge_groundedness(req.question, rag_answer, chunks)
     relevance = judge_relevance(req.question, rag_answer)
+
+    langfuse_context.score_current_trace(
+        name="groundedness",
+        value=groundedness["score"],
+        comment=groundedness.get("verdict"),
+    )
+    langfuse_context.score_current_trace(
+        name="relevance",
+        value=relevance["score"],
+        comment=relevance.get("verdict"),
+    )
+
+    langfuse_context.update_current_trace(
+        output=rag_answer,
+        metadata={"sources": source_names},
+    )
 
     return EvalResponse(
         question=req.question,

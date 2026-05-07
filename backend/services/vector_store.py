@@ -7,6 +7,7 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
+from langfuse.decorators import observe, langfuse_context
 from config import settings
 
 # Cloud si QDRANT_URL está definido, local para desarrollo
@@ -39,6 +40,7 @@ def upsert_chunks(chunks: list[dict]) -> None:
     _client.upsert(collection_name=settings.qdrant_collection, points=points)
 
 
+@observe(name="qdrant-search")
 def search(vector: list[float], top_k: int = 5, filters: dict | None = None) -> list[dict]:
     ensure_collection()
     qdrant_filter = None
@@ -55,7 +57,16 @@ def search(vector: list[float], top_k: int = 5, filters: dict | None = None) -> 
         query_filter=qdrant_filter,
         with_payload=True,
     )
-    return [
-        {"score": r.score, **r.payload}
-        for r in response.points
-    ]
+
+    results = [{"score": r.score, **r.payload} for r in response.points]
+
+    langfuse_context.update_current_observation(
+        metadata={
+            "top_k": top_k,
+            "num_results": len(results),
+            "sources": [r.get("source", "unknown") for r in results],
+            "scores": [round(r.get("score", 0), 4) for r in results],
+        }
+    )
+
+    return results
