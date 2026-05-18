@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / "backend" / ".env")
 
 from services.embeddings import embed_texts
-from services.vector_store import upsert_chunks, ensure_collection
+from services.vector_store import upsert_chunks, delete_by_source, drop_and_recreate_collection
 
 DOCS_DIR = Path(__file__).parent.parent / "docs"
 CHUNK_SIZE = 1200  # caracteres por chunk
@@ -87,7 +87,6 @@ def index_file(filepath: Path) -> int:
         for i in range(len(chunks_text))
     ]
 
-    ensure_collection()
     upsert_chunks(chunks)
     return len(chunks)
 
@@ -97,6 +96,9 @@ def main():
     if not md_files:
         print(f"No se encontraron archivos .md en {DOCS_DIR}")
         return
+
+    print("Limpiando colección anterior...")
+    drop_and_recreate_collection()
 
     total = 0
     for f in md_files:

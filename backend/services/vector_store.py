@@ -6,6 +6,7 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
+    PayloadSchemaType,
 )
 from langfuse.decorators import observe, langfuse_context
 from config import settings
@@ -25,6 +26,28 @@ def ensure_collection() -> None:
             collection_name=settings.qdrant_collection,
             vectors_config=VectorParams(size=settings.embedding_dim, distance=Distance.COSINE),
         )
+        _client.create_payload_index(
+            collection_name=settings.qdrant_collection,
+            field_name="source",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+
+
+def drop_and_recreate_collection() -> None:
+    existing = [c.name for c in _client.get_collections().collections]
+    if settings.qdrant_collection in existing:
+        _client.delete_collection(settings.qdrant_collection)
+    ensure_collection()
+
+
+def delete_by_source(source: str) -> None:
+    ensure_collection()
+    _client.delete(
+        collection_name=settings.qdrant_collection,
+        points_selector=Filter(
+            must=[FieldCondition(key="source", match=MatchValue(value=source))]
+        ),
+    )
 
 
 def upsert_chunks(chunks: list[dict]) -> None:
