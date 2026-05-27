@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from langfuse.decorators import observe, langfuse_context
 from services.embeddings import embed_query
 from services.vector_store import search
-from services.llm import ask
+from services.llm import ask, NO_INFO_ANSWER
 from services.evaluator import judge_groundedness, judge_relevance
 
 router = APIRouter(prefix="/eval", tags=["eval"])
@@ -48,8 +48,20 @@ def evaluate(req: EvalRequest):
     rag_answer = ask(req.question, chunks)
     source_names = list(dict.fromkeys(c.get("source", "") for c in chunks))
 
-    groundedness = judge_groundedness(req.question, rag_answer, chunks)
-    relevance = judge_relevance(req.question, rag_answer)
+    if NO_INFO_ANSWER in rag_answer:
+        groundedness = {
+            "score": 0,
+            "verdict": "El contexto recuperado no contiene información relevante para responder la pregunta.",
+            "unsupported_claims": "N/A",
+        }
+        relevance = {
+            "score": 0,
+            "verdict": "La pregunta no pudo responderse: no hay información disponible en la base de conocimiento.",
+            "missing_aspects": req.question,
+        }
+    else:
+        groundedness = judge_groundedness(req.question, rag_answer, chunks)
+        relevance = judge_relevance(req.question, rag_answer)
 
     langfuse_context.score_current_trace(
         name="groundedness",
