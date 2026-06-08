@@ -57,10 +57,9 @@ def ask(question: str, context_chunks: list[dict], low_confidence: bool = False)
 
     get_client().update_current_generation(
         output=answer,
-        usage={
+        usage_details={
             "input": response.usage.input_tokens,
             "output": response.usage.output_tokens,
-            "total": response.usage.input_tokens + response.usage.output_tokens,
         },
     )
 
